@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>의약품 실적 대시보드</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; text-align: center; padding: 50px; background-color: #f4f7f6; }
+        .container { background: white; border: 2px solid #4CAF50; padding: 30px; border-radius: 15px; display: inline-block; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 90%; max-width: 850px; }
+        h1 { color: #2E7D32; }
+        button { background-color: #4CAF50; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 20px 0; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; display: none; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #e8f5e9; }
+        .loading { display: none; color: #666; margin: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💊 의약품 생산·수입 실적 조회</h1>
+        <p>식품의약품안전처 실적 데이터 (Service02)</p>
+        
+        <button onclick="fetchData()">데이터 불러오기</button>
+        <div id="loading" class="loading">⏳ 데이터를 불러오는 중...</div>
+
+        <table id="resultTable">
+            <thead>
+                <tr>
+                    <th>업체명</th>
+                    <th>제품명</th>
+                    <th>실적년도</th>
+                    <th>실적금액</th>
+                </tr>
+            </thead>
+            <tbody id="resultBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function fetchData() {
+            // 이미지에 표시된 일반 인증키 그대로 사용
+            const API_KEY = decodeURIComponent('3358d0a8ad766199bceba04104a7d6ff5c9851fd5a9de8a01f81ffa06a76edd8'); 
+            
+            // 이미지의 End Point 주소를 반영한 URL
+            const url = `https://apis.data.go.kr/1471000/MdcinPrdctnImportAcmsltService02/getMdcinPrdctnImportAcmsltList02?serviceKey=${API_KEY}&type=json&numOfRows=10&pageNo=1`;
+
+            const loading = document.getElementById('loading');
+            const table = document.getElementById('resultTable');
+            const tbody = document.getElementById('resultBody');
+
+            loading.style.display = 'block';
+            table.style.display = 'none';
+            tbody.innerHTML = '';
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                // Service02 API의 응답 구조 확인 및 출력
+                if (data.response && data.response.body && data.response.body.items) {
+                    const items = data.response.body.items;
+                    const itemList = Array.isArray(items) ? items : [items];
+
+                    itemList.forEach(item => {
+                        // API마다 항목명이 다를 수 있어 일반적인 명칭들을 체크합니다.
+                        const entpName = item.ENTP_NAME || item.entp_name || '-';
+                        const prdName = item.PRDUCT_NAME || item.item_name || '-';
+                        const year = item.PRDCTN_YEAR || item.year || '-';
+                        const price = item.PRDCTN_AMOUNT || item.amount || '0';
+
+                        const row = `<tr>
+                            <td>${entpName}</td>
+                            <td>${prdName}</td>
+                            <td>${year}</td>
+                            <td>${Number(price).toLocaleString()}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+
+                    loading.style.display = 'none';
+                    table.style.display = 'table';
+                } else {
+                    throw new Error("데이터 형식이 다르거나 활성화 대기 중입니다.");
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                console.error("에러 상세:", error);
+                alert("실패: " + error.message + "\n재발급 후 24시간이 지나지 않았다면 조금 더 기다려주세요!");
+            }
+        }
+    </script>
+</body>
+</html>
